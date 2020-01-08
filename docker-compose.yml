@@ -1,0 +1,63 @@
+version: '3.1'
+
+# Original version, directly from the wordpress Docker hub page
+
+services:
+
+  wordpress:
+    # Use 'latest' version of wordpress which (surprisingly enough) isn't always the latest
+    image: wordpress
+    # Changing this to use a local Dockerfile that fixes a problem with directory permissions
+    # Didn't work, error msg that no such directory '/var/www/html/wp-content', need to play with this more
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile-wordpress
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: exampleuser
+      WORDPRESS_DB_PASSWORD: examplepass
+      WORDPRESS_DB_NAME: exampledb
+      # Add table prefix specific to grassrootsvolunteering
+      WORDPRESS_TABLE_PREFIX: gv_wp_1_0_
+    volumes:
+      # Use host directories for themes and plugins development
+      #- ./themes:/var/www/html/wp-content/themes
+      #- ./plugins:/var/www/html/wp-content/plugins
+      # Enable phpinfo()
+      #- ./phpinfo.php:/var/www/html/phpinfo.php
+
+      # Comment all volumes above to create a volume for the entire html directory
+      - ./html:/var/www/html
+
+      # Enable larger file uploads
+      - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+
+    depends_on:
+      - db
+
+  db:
+    # WordPress may have incompatibilities with mySql 8, so peg it at 5.7 for now
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_ROOT_PASSWORD: rootpass
+    # Use a host directory for the database
+    volumes:
+      - ./mysql_db:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - 8084:80
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: rootpass
+    depends_on:
+      - db
